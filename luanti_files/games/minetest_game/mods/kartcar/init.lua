@@ -8,7 +8,9 @@ minekart.gravity = 9.8
 minekart.is_creative = minetest.settings:get_bool("creative_mode", false)
 
 minekart.fuel = {['biofuel:biofuel'] = 1,['biofuel:bottle_fuel'] = 1,
-                ['biofuel:phial_fuel'] = 0.25, ['biofuel:fuel_can'] = 10}
+                ['biofuel:phial_fuel'] = 0.25, ['biofuel:fuel_can'] = 10,
+                ['cannabis:canapa_fuel'] = 0.25, ['techage:ta3_canister_fueloil'] = 1,
+                ['techage:ta3_canister_naphtha'] = 0.25, ['techage:ta3_canister_gasoline'] = 10}
 
 --two variables to control sound event
 minekart.last_time_collision_snd = 0

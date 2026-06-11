@@ -6,10 +6,10 @@ local path = cannabis.path
 if minetest.get_modpath("cannabis") then
 	local stats = {
 		
-        tessuto= { name="tessuto",fire=4, armor=2.0, heal=18, use=50,jump=0.6,speed=1.5,gravity=-0.1 },
-		foglie = { name="foglie",fire=4, armor=2.7, heal=8, use=10 ,jump=0.7,speed=1.5,gravity=-0.2},
-		fibra = { name="fibra", fire=5,armor=3.8, heal=28, use=100,jump=0.8,speed=1.5,gravity=-0.3},
-		high = { name="high_performance",fire=5, armor=3.9, heal=38, use=70,jump=0.9,speed=1.5,gravity=-0.4 },
+        tessuto= { name="tessuto",fire=2, armor=2.0, heal=6, use=50,jump=0.5 },
+		foglie = { name="foglie",fire=3, armor=2.7, heal=6, use=10 ,jump=0.6,gravity=-0.1},
+		fibra = { name="fibra", fire=4,armor=3.8, heal=6, use=100,jump=0.7,gravity=-0.2},
+		high = { name="high_performance",fire=5, armor=3.9, heal=6, use=70,jump=0.8,speed=1.5,gravity=-0.3 },
 		adminh =  { name="adminh",fire=5, armor=100, heal=100, use=100 ,armor_water=1,jump=1,speed=1.5,gravity=-0.5,not_in_creative_inventory=0},
 		
 	}
