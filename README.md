@@ -13,7 +13,7 @@ Advanced technical survival server with machines and automation. Build complex f
  - Community building projects
  - Resource processing chains
 
-**Discord community:** https://discord.gg/JUFdNDWAcu
+**Discord community:** https://discord.gg/j7ZHrgDTrn
 
 ## Server Launch
 
@@ -116,6 +116,6 @@ more info: https://content.luanti.org/packages/archfan7411/discordmt/
 
 ## Support
 
-If you have problems or questions, join our Discord server: https://discord.gg/JUFdNDWAcu
+If you have problems or questions, join our Discord server: https://discord.gg/j7ZHrgDTrn
 
 ---
