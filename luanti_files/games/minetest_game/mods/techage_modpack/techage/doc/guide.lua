@@ -14,6 +14,7 @@ doclib.create_manual("techage", "DE", settings)
 doclib.create_manual("techage", "EN", settings)
 doclib.create_manual("techage", "pt-BR", settings)
 doclib.create_manual("techage", "RU", settings)
+doclib.create_manual("techage", "UA", settings)
 
 local content
 content = dofile(MP.."/doc/manual_DE.lua") 
@@ -67,6 +68,19 @@ content = dofile(MP.."/doc/manual_ta4_RU.lua")
 doclib.add_to_manual("techage", "RU", content)
 content = dofile(MP.."/doc/manual_ta5_RU.lua")
 doclib.add_to_manual("techage", "RU", content)
+
+content = dofile(MP.."/doc/manual_UA.lua")
+doclib.add_to_manual("techage", "UA", content)
+content = dofile(MP.."/doc/manual_ta1_UA.lua")
+doclib.add_to_manual("techage", "UA", content)
+content = dofile(MP.."/doc/manual_ta2_UA.lua")
+doclib.add_to_manual("techage", "UA", content)
+content = dofile(MP.."/doc/manual_ta3_UA.lua")
+doclib.add_to_manual("techage", "UA", content)
+content = dofile(MP.."/doc/manual_ta4_UA.lua")
+doclib.add_to_manual("techage", "UA", content)
+content = dofile(MP.."/doc/manual_ta5_UA.lua")
+doclib.add_to_manual("techage", "UA", content)
 
 local board_box = {
 	type = "wallmounted",
@@ -229,6 +243,41 @@ minetest.register_craft({
 	},
 })
 
+minetest.register_node("techage:construction_board_UA", {
+	description = "TA Construction Board (UA)",
+	inventory_image = 'techage_constr_plan_inv_ua.png',
+	tiles = {"techage_constr_plan_ua.png"},
+	drawtype = "nodebox",
+	node_box = board_box,
+	selection_box = board_box,
+	after_place_node = function(pos, placer, itemstack)
+		M(pos):set_string("infotext", "План будівництва ТА (UA)")
+		M(pos):set_string("formspec", doclib.formspec(pos, "techage", "UA"))
+	end,
+	on_receive_fields = function(pos, formname, fields, player)
+		local player_name = player:get_player_name()
+		if minetest.is_protected(pos, player_name) then
+			return
+		end
+		M(pos):set_string("formspec", doclib.formspec(pos, "techage", "UA", fields))
+	end,
+	paramtype2 = "wallmounted",
+	paramtype = "light",
+	use_texture_alpha = techage.CLIP,
+	sunlight_propagates = true,
+	is_ground_content = false,
+	groups = {choppy = 2, oddly_breakable_by_hand = 2, flammable = 2},
+	sounds = default.node_sound_wood_defaults(),
+})
+minetest.register_craft({
+	output = "techage:construction_board_UA",
+	recipe = {
+		{"default:paper", "default:paper", "default:paper"},
+		{"default:paper", "default:paper", "default:paper"},
+		{"default:paper", "default:paper", "default:paper"},
+	},
+})
+
 minetest.register_craft({
   type = "shapeless",
 	output = "techage:construction_board_EN",
@@ -253,6 +302,12 @@ minetest.register_craft({
 	recipe = {"techage:construction_board_pt_BR"},
 })
 
+minetest.register_craft({
+  type = "shapeless",
+	output = "techage:construction_board_RU",
+	recipe = {"techage:construction_board_UA"},
+})
+
 --
 -- Legacy API functions
 --
@@ -267,6 +322,7 @@ function techage.add_manual_items(table_with_items)
 		doclib.add_manual_image("techage", "DE", name, image)
 		doclib.add_manual_image("techage", "pt-BR", name, image)
 		doclib.add_manual_image("techage", "RU", name, image)
+		doclib.add_manual_image("techage", "UA", name, image)
 	end
 end
 
@@ -276,5 +332,6 @@ function techage.add_manual_plans(table_with_plans)
 		doclib.add_manual_plan("techage", "DE", name, plan)
 		doclib.add_manual_plan("techage", "pt-BR", name, plan)
 		doclib.add_manual_plan("techage", "RU", name, plan)
+		doclib.add_manual_plan("techage", "UA", name, plan)
 	end
 end

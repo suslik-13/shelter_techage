@@ -97,6 +97,12 @@ local function can_start(pos, nvm, state)
 		return S("reactor defect or no power")
 	end
 	local recipe = recipes.get(nvm, "ta4_doser")
+	if not recipe or not recipe.output or recipe.output.name == "" then
+		return S("no recipe selected")
+	end
+	if not minetest.registered_craftitems[recipe.output.name] then
+		return S("invalid output item in recipe")
+	end
 	if recipe.catalyst then
 		res = reactor_cmnd(pos, "catalyst")
 		if not res or res == "" then
@@ -143,9 +149,19 @@ end
 
 test_setup = function(pos, nvm)
 	local recipe = recipes.get(nvm, "ta4_doser")
-	local ndef = minetest.registered_craftitems[recipe.output.name]
-	local container = ndef.groups and ndef.groups.powder == 1 and "silo" or "tank"
 	nvm.fault = nil
+
+	if not recipe or not recipe.output or recipe.output.name == "" then
+		nvm.fault = S("no recipe selected")
+		return
+	end
+
+	local ndef = minetest.registered_craftitems[recipe.output.name]
+	if not ndef then
+		nvm.fault = S("invalid output item")
+		return
+	end
+	local container = ndef.groups and ndef.groups.powder == 1 and "silo" or "tank"
 	
 	if reactor_cmnd(pos, "get_output_container") ~= container then
 		if container == "silo" then
@@ -161,6 +177,10 @@ test_setup = function(pos, nvm)
 	end
 	
 	ndef = minetest.registered_craftitems[recipe.waste.name]
+	if not ndef then
+		nvm.fault = S("invalid waste item")
+		return
+	end
 	container = ndef.groups and ndef.groups.powder == 1 and "silo" or "tank"
 	if reactor_cmnd(pos, "get_waste_container") ~= container then
 		if container == "silo" then
