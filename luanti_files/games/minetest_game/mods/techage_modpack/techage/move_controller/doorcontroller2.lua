@@ -130,6 +130,20 @@ local function exchange_node(cfg, item)
 	local node = techage.get_node_lvm(cfg.pos)
 	if is_simple_node(cfg.pos, node.name) then
 		local name = item:get_count() > 0 and item:get_name() or "air"
+		if name ~= "air" and not minetest.registered_nodes[name] then
+			-- Item is a "base" door itemstring (e.g. "doors:door_steel"), which is only
+			-- a craftitem, not a placeable node. Real nodes are the "_a"/"_b" (or
+			-- "_c"/"_d") variants. Map it onto the "_a" variant instead of crashing
+			-- in swap_node with "Unknown node".
+			local variant = name .. "_a"
+			if minetest.registered_nodes[variant] then
+				name = variant
+			else
+				minetest.log("warning", "[techage] doorcontroller2: unknown node '"..name..
+					"' at "..P2S(cfg.pos)..", slot item skipped")
+				return item
+			end
+		end
 		fly.exchange_node(cfg.pos, name, cfg.param2)
 		cfg.param2 = node.param2
 		cfg.state = not cfg.state
