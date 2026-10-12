@@ -54,6 +54,7 @@ end
 -- switch to normal or loaded texture
 local function turn_off(pos)
 	local mem = tubelib2.get_mem(pos)
+	mem.queue = mem.queue or 0 -- mem is lost after a server restart
 	local node = minetest.get_node(pos)
 	if mem.queue > 0 then
 		node.name = "signs_bot:delayer_loaded"
@@ -92,6 +93,7 @@ end
 local function node_timer(pos)
 	local meta = M(pos)
 	local mem = tubelib2.get_mem(pos)
+	mem.queue = mem.queue or 0 -- mem is lost after a server restart
 	mem.time = (mem.time or 0) - CYCLE_TIME
 	--print("node_timer time="..mem.time..", queue="..mem.queue)
 	if mem.time <= 0 and mem.queue > 0 then

@@ -12,6 +12,7 @@ local settings = {
 
 doclib.create_manual("techage", "DE", settings)
 doclib.create_manual("techage", "EN", settings)
+doclib.create_manual("techage", "FR", settings)
 doclib.create_manual("techage", "pt-BR", settings)
 doclib.create_manual("techage", "RU", settings)
 doclib.create_manual("techage", "UA", settings)
@@ -42,6 +43,19 @@ content = dofile(MP.."/doc/manual_ta4_EN.lua")
 doclib.add_to_manual("techage", "EN", content)
 content = dofile(MP.."/doc/manual_ta5_EN.lua") 
 doclib.add_to_manual("techage", "EN", content)
+
+content = dofile(MP.."/doc/manual_FR.lua") 
+doclib.add_to_manual("techage", "FR", content)
+content = dofile(MP.."/doc/manual_ta1_FR.lua") 
+doclib.add_to_manual("techage", "FR", content)
+content = dofile(MP.."/doc/manual_ta2_FR.lua") 
+doclib.add_to_manual("techage", "FR", content)
+content = dofile(MP.."/doc/manual_ta3_FR.lua") 
+doclib.add_to_manual("techage", "FR", content)
+content = dofile(MP.."/doc/manual_ta4_FR.lua") 
+doclib.add_to_manual("techage", "FR", content)
+content = dofile(MP.."/doc/manual_ta5_FR.lua") 
+doclib.add_to_manual("techage", "FR", content)
 
 content = dofile(MP.."/doc/manual_pt-BR.lua") 
 doclib.add_to_manual("techage", "pt-BR", content)
@@ -165,6 +179,45 @@ minetest.register_craft({
 	},
 })
 
+minetest.register_node("techage:construction_board_FR", {
+	description = "TA Construction Board (FR)",
+	inventory_image = 'techage_constr_plan_inv_fr.png',
+	tiles = {"techage_constr_plan_fr.png"},
+	drawtype = "nodebox",
+	node_box = board_box,
+	selection_box = board_box,
+
+	after_place_node = function(pos, placer, itemstack)
+		M(pos):set_string("infotext", "TA Construction Board (FR)")
+		M(pos):set_string("formspec", doclib.formspec(pos, "techage", "FR"))
+	end,
+
+	on_receive_fields = function(pos, formname, fields, player)
+		local player_name = player:get_player_name()
+		if minetest.is_protected(pos, player_name) then
+			return
+		end
+		M(pos):set_string("formspec", doclib.formspec(pos, "techage", "FR", fields))
+	end,
+
+	paramtype2 = "wallmounted",
+	paramtype = "light",
+	use_texture_alpha = techage.CLIP,
+	sunlight_propagates = true,
+	is_ground_content = false,
+	groups = {choppy = 2, oddly_breakable_by_hand = 2, flammable = 2},
+	sounds = default.node_sound_wood_defaults(),
+})
+
+minetest.register_craft({
+	output = "techage:construction_board_FR",
+	recipe = {
+		{"default:paper", "default:stick", "default:paper"},
+		{"default:paper", "default:stick", "default:paper"},
+		{"default:paper", "default:stick", "default:paper"},
+	},
+})
+
 minetest.register_node("techage:construction_board_pt_BR", {
 	description = "TA Placa de construção (pt-BR)",
 	inventory_image = 'techage_constr_plan_inv_br.png',
@@ -250,10 +303,12 @@ minetest.register_node("techage:construction_board_UA", {
 	drawtype = "nodebox",
 	node_box = board_box,
 	selection_box = board_box,
+
 	after_place_node = function(pos, placer, itemstack)
 		M(pos):set_string("infotext", "План будівництва ТА (UA)")
 		M(pos):set_string("formspec", doclib.formspec(pos, "techage", "UA"))
 	end,
+
 	on_receive_fields = function(pos, formname, fields, player)
 		local player_name = player:get_player_name()
 		if minetest.is_protected(pos, player_name) then
@@ -261,6 +316,7 @@ minetest.register_node("techage:construction_board_UA", {
 		end
 		M(pos):set_string("formspec", doclib.formspec(pos, "techage", "UA", fields))
 	end,
+
 	paramtype2 = "wallmounted",
 	paramtype = "light",
 	use_texture_alpha = techage.CLIP,
@@ -269,10 +325,11 @@ minetest.register_node("techage:construction_board_UA", {
 	groups = {choppy = 2, oddly_breakable_by_hand = 2, flammable = 2},
 	sounds = default.node_sound_wood_defaults(),
 })
+
 minetest.register_craft({
 	output = "techage:construction_board_UA",
 	recipe = {
-		{"default:paper", "default:paper", "default:paper"},
+		{"default:paper", "default:stick", "default:stick"},
 		{"default:paper", "default:paper", "default:paper"},
 		{"default:paper", "default:paper", "default:paper"},
 	},
@@ -298,7 +355,7 @@ minetest.register_craft({
 
 minetest.register_craft({
   type = "shapeless",
-	output = "techage:construction_board_RU",
+	output = "techage:construction_board_UA",
 	recipe = {"techage:construction_board_pt_BR"},
 })
 
@@ -319,6 +376,7 @@ end
 function techage.add_manual_items(table_with_items)
 	for name, image in pairs(table_with_items) do
 		doclib.add_manual_image("techage", "EN", name, image)
+		doclib.add_manual_image("techage", "FR", name, image)
 		doclib.add_manual_image("techage", "DE", name, image)
 		doclib.add_manual_image("techage", "pt-BR", name, image)
 		doclib.add_manual_image("techage", "RU", name, image)
@@ -329,6 +387,7 @@ end
 function techage.add_manual_plans(table_with_plans)
 	for name, plan in pairs(table_with_plans) do
 		doclib.add_manual_plan("techage", "EN", name, plan)
+		doclib.add_manual_plan("techage", "FR", name, plan)
 		doclib.add_manual_plan("techage", "DE", name, plan)
 		doclib.add_manual_plan("techage", "pt-BR", name, plan)
 		doclib.add_manual_plan("techage", "RU", name, plan)

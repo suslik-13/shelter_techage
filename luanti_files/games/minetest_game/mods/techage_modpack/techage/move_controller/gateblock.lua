@@ -54,9 +54,12 @@ for idx,pgn in ipairs(tPgns) do
 		end,
 
 		on_receive_fields = function(pos, formname, fields, player)
+			if minetest.is_protected(pos, player:get_player_name()) then
+				return
+			end
 			local meta = minetest.get_meta(pos)
 			local node = minetest.get_node(pos)
-			if fields.type then
+			if fields.type and tTextures[fields.type] then
 				node.name = "techage:gateblock"..tTextures[fields.type]
 				minetest.swap_node(pos, node)
 			end

@@ -103,8 +103,8 @@ function techage.listing(fs_data)
 	local tbl = {}
 
 	for idx = 1,techage.NUM_RULES do
-		tbl[#tbl+1] = idx.." ("..fs_data[idx].cycle.."s): IF "..button(fs_data[idx].cond)
-		tbl[#tbl+1] = " THEN "..button(fs_data[idx].actn).." after "..fs_data[idx].after.."s\n"
+		tbl[#tbl+1] = idx.." ("..(fs_data[idx].cycle or "").."s): IF "..button(fs_data[idx].cond)
+		tbl[#tbl+1] = " THEN "..button(fs_data[idx].actn).." after "..(fs_data[idx].after or "").."s\n"
 	end
 	return table.concat(tbl)
 end

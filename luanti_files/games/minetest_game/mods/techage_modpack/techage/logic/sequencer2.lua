@@ -243,9 +243,13 @@ local function node_timer(pos, elapsed)
 			local code = nvm.code.tCode[nvm.idx]
 			if code and code.cmnd then
 				local src = M(pos):get_string("node_number")
-				techage.counting_start(M(pos):get_string("owner"))
-				techage.send_single(src, code.number, code.cmnd, code.payload)
-				techage.counting_stop()
+				local owner = M(pos):get_string("owner")
+				-- only devices the sequencer owner has access to
+				if techage.not_protected(code.number, owner) then
+					techage.counting_start(owner)
+					techage.send_single(src, code.number, code.cmnd, code.payload)
+					techage.counting_stop()
+				end
 			end
 			if code and code.next_idx then
 				local offs = code.next_idx - nvm.idx

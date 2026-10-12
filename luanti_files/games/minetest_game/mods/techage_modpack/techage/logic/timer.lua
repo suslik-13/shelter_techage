@@ -147,7 +147,7 @@ minetest.register_node("techage:ta3_timer", {
 
 		local events = minetest.deserialize(meta:get_string("events"))
 		for idx, evt in ipairs({fields.e1, fields.e2, fields.e3, fields.e4, fields.e5, fields.e6}) do
-			if evt ~= nil then
+			if evt ~= nil and tTime[evt] then
 				events[idx] = tTime[evt]
 			end
 		end
@@ -163,7 +163,7 @@ minetest.register_node("techage:ta3_timer", {
 
 		local actions = minetest.deserialize(meta:get_string("actions"))
 		for idx, act in ipairs({fields.a1, fields.a2, fields.a3, fields.a4, fields.a5, fields.a6}) do
-			if act ~= nil then
+			if act ~= nil and tAction[act] then
 				actions[idx] = act
 			end
 		end

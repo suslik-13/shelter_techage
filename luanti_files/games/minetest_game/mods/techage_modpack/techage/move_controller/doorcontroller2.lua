@@ -29,46 +29,69 @@ local NUMSLOTS = 16
 --------------------------------------------------------------------------
 local function get_positions(nvm)
 	local lpos = {}
-	for idx,cfg in ipairs(nvm.config) do
+	for idx,cfg in ipairs(nvm.config or {}) do
 		lpos[idx] = cfg.pos
 	end
 	return lpos
 end
 
-local function get_node_name(nvm, slot)
-	nvm.config = nvm.config or {}
-	local cfg = nvm.config[slot]
-	if cfg then
-		return techage.get_node_lvm(cfg.pos).name
+-- Slot state: 1 = Initial state (reset), 2 = Exchange state
+local function get_state(nvm, number)
+	if nvm.config and nvm.config[number] then
+		return nvm.config[number].state and 1 or 2
 	end
-	return "unknown"
+	return 0
 end
 
 local function is_simple_node(pos, name)
 	if not minecart.is_rail(pos, name) then
 		local ndef = minetest.registered_nodes[name]
-		return techage.can_dig_node(name, ndef) or minecart.is_cart(name)
+		return techage.can_dig_node(name, ndef) or minecart.is_cart(name) or 
+		       doors.registered_doors[name] or doors.registered_trapdoors[name]
 	end
 	return false
+end
+
+-- Returns the name of the node to be placed for the slot item ("air" for an empty slot).
+-- Controllers from older versions can contain items which were put in by hand.
+-- A "base" door itemstring (e.g. "doors:door_steel") is only a craftitem, the real
+-- nodes are the "_a"/"_b" (or "_c"/"_d") variants, so use the "_a" variant instead.
+local function node_name_of(item)
+	local name = item:get_count() > 0 and item:get_name() or "air"
+	if not minetest.registered_nodes[name] and minetest.registered_nodes[name .. "_a"] then
+		return name .. "_a"
+	end
+	return name
 end
 
 -- Slot Configuration {
 --   pos,    -- pos from the node in the inventory
 --   param2, -- param2 from the node in the inventory
---   state,  -- false = block is dug/slot is filled, true = block is set/slot is empty
+--   state,  -- false = block is dug/slot is filled (set), true = block is set/slot is empty (reset)
+--   nameS,  -- name of the node in the world, if state = false (set)
+--   nameR,  -- name of the node in the worls, if state = true (reset)
 -- }
+-- Positions in areas the controller owner has no access to are skipped.
+-- Returns the number of stored and skipped positions.
 local function gen_config(pos, pos_list)
 	local nvm = techage.get_nvm(pos)
+	local owner = M(pos):get_string("owner")
+	local skipped = 0
 	nvm.config = {}
-	for idx,pos in ipairs(pos_list) do
-		local node = techage.get_node_lvm(pos)
-		nvm.config[idx] = {pos = pos, param2 = node.param2, state = true}
+	for _,pos in ipairs(pos_list) do
+		if minetest.is_protected(pos, owner) then
+			skipped = skipped + 1
+		else
+			local node = techage.get_node_lvm(pos)
+			nvm.config[#nvm.config + 1] = {pos = pos, param2 = node.param2, state = true, nameR = node.name, nameS = "air"}
+		end
 	end
+	return #nvm.config, skipped
 end
 
 local function gen_config_initial(pos)
 	local inv = M(pos):get_inventory()
-	local item_list = inv:get_list("main")
+	local item_list = inv:get_list("main") or {}
 	local nvm = techage.get_nvm(pos)
 	nvm.config = {}
 	nvm.pos_list = nvm.pos_list or {}
@@ -78,11 +101,35 @@ local function gen_config_initial(pos)
 		-- The status is not yet known. It is assumed that the block is set (status = true)
 		-- if the inventory is empty.
 		local item = item_list[idx]
+		local node = techage.get_node_lvm(nvm.pos_list[idx])
 		local state = (item and item:get_count() > 0) == false
-		nvm.config[idx] = {pos = nvm.pos_list[idx], param2 = nvm.param2_list[idx], state = state}
+		if state then
+			nvm.config[idx] = {pos = nvm.pos_list[idx], param2 = nvm.param2_list[idx], state = state, nameR = node.name, nameS = "air"}
+		else
+			nvm.config[idx] = {pos = nvm.pos_list[idx], param2 = nvm.param2_list[idx], state = state, nameR = "air", nameS = node.name}
+		end
 	end
 	nvm.pos_list = nil
 	nvm.param2_list = nil
+end
+
+local function add_node_names(pos, nvm)
+	local inv = M(pos):get_inventory()
+	local item_list = inv:get_list("main") or {}
+	nvm.config = nvm.config or {}
+	for idx = 1, #nvm.config do
+		local node = techage.get_node_lvm(nvm.config[idx].pos)
+		local item = item_list[idx]
+		if item then
+			if nvm.config[idx].state then
+				nvm.config[idx].nameR = node.name
+				nvm.config[idx].nameS = node_name_of(item)
+			else
+				nvm.config[idx].nameR = node_name_of(item)
+				nvm.config[idx].nameS = node.name
+			end
+		end
+	end
 end
 
 --------------------------------------------------------------------------
@@ -126,52 +173,76 @@ end
 --------------------------------------------------------------------------
 -- Exchange nodes
 --------------------------------------------------------------------------
-local function exchange_node(cfg, item)
+local function remove_hidden_door_node(pos)
+	local above = vector.offset(pos, 0, 1, 0)
+	if minetest.get_node(above).name == "doors:hidden" then
+		minetest.remove_node(above)
+	end
+end
+
+-- Returns the new slot item and false, if the slot has to be skipped
+-- (protected position or the slot item is no node).
+local function exchange_node(cfg, item, owner)
+	-- Never touch blocks in areas the controller owner has no access to
+	if minetest.is_protected(cfg.pos, owner) then
+		return item, false
+	end
 	local node = techage.get_node_lvm(cfg.pos)
 	if is_simple_node(cfg.pos, node.name) then
-		local name = item:get_count() > 0 and item:get_name() or "air"
-		if name ~= "air" and not minetest.registered_nodes[name] then
-			-- Item is a "base" door itemstring (e.g. "doors:door_steel"), which is only
-			-- a craftitem, not a placeable node. Real nodes are the "_a"/"_b" (or
-			-- "_c"/"_d") variants. Map it onto the "_a" variant instead of crashing
-			-- in swap_node with "Unknown node".
-			local variant = name .. "_a"
-			if minetest.registered_nodes[variant] then
-				name = variant
+		local name = node_name_of(item)
+		if not minetest.registered_nodes[name] then
+			-- swap_node would crash the server with "Unknown node"
+			minetest.log("warning", "[techage] doorcontroller2: unknown node '"..name..
+				"' at "..P2S(cfg.pos)..", slot item skipped")
+			return item, false
+		end
+		local expected_node_name = cfg.state and cfg.nameR or cfg.nameS
+		if fly.exchange_node(cfg.pos, name, cfg.param2, expected_node_name) then
+			remove_hidden_door_node(cfg.pos)
+			cfg.param2 = node.param2
+			cfg.state = not cfg.state
+			if node.name ~= "air" then
+				return ItemStack(node.name), true
 			else
-				minetest.log("warning", "[techage] doorcontroller2: unknown node '"..name..
-					"' at "..P2S(cfg.pos)..", slot item skipped")
-				return item
+				return ItemStack(), true
 			end
 		end
-		fly.exchange_node(cfg.pos, name, cfg.param2)
-		cfg.param2 = node.param2
-		cfg.state = not cfg.state
-		if node.name ~= "air" then
-			return ItemStack(node.name)
-		else
-			return ItemStack()
-		end
 	end
-	return item
+	return item, true
 end
 
 local function exchange_nodes(pos, nvm, slot, force)
 	local inv = M(pos):get_inventory()
 	local item_list = inv:get_list("main")
+	if item_list == nil then
+		return false
+	end
 	local res = false
 	nvm.config = nvm.config or {}
-	local len = #nvm.config
+	local len = math.min(#nvm.config, #item_list)
+	-- The slot number comes from commands and can be any number.
+	-- Must be checked here, e.g. 'for idx = 1e17, 1e17' would never end.
+	if slot and (slot ~= math.floor(slot) or slot < 1 or slot > len) then
+		return false
+	end
+	local owner = M(pos):get_string("owner")
 
 	for idx = (slot or 1), (slot or len) do
 		local cfg = nvm.config[idx]
+		local state = cfg.state
 		local item = item_list[idx]
 		if (force == nil)
 		or (force == "exch")
 		or (force == "dig" and item:get_count() == 0)
-		or (force == "set" and item:get_count() > 0) then
-			item_list[idx] = exchange_node(cfg, item)
-			res = true
+		or (force == "set" and item:get_count() > 0)
+		or (force == "to2" and state)
+		or (force == "to1" and not state) then
+			local done
+			item_list[idx], done = exchange_node(cfg, item, owner)
+			if done then
+				nvm.config[idx].state = not state
+				res = true
+			end
 		end
 	end
 	inv:set_list("main", item_list)
@@ -181,45 +252,21 @@ end
 local function reset_config(pos, nvm)
 	local inv = M(pos):get_inventory()
 	local item_list = inv:get_list("main")
+	if item_list == nil then
+		return
+	end
+	local owner = M(pos):get_string("owner")
 
 	for idx, cfg in ipairs(nvm.config or {}) do
 		local item = item_list[idx]
-		if not cfg.state then
-			item_list[idx] = exchange_node(cfg, item)
+		if item and not cfg.state then
+			item_list[idx] = exchange_node(cfg, item, owner)
 		end
 	end
 	inv:set_list("main", item_list)
 end
 
-local function show_nodes(pos)
-	local nvm = techage.get_nvm(pos)
-	if not nvm.is_on then
-		nvm.is_on = true
-		if nvm.play_sound then
-			minetest.sound_play("doors_door_close", {
-				pos = pos,
-				gain = 1,
-				max_hear_distance = 15})
-		end
-		return exchange_nodes(pos, nvm)
-	end
-end
-
-local function hide_nodes(pos)
-	local nvm = techage.get_nvm(pos)
-	if nvm.is_on then
-		nvm.is_on = false
-		if nvm.play_sound then
-			minetest.sound_play("doors_door_open", {
-				pos = pos,
-				gain = 1,
-				max_hear_distance = 15})
-		end
-		return exchange_nodes(pos, nvm)
-	end
-end
-
-local function exch_nodes(pos)
+local function exchange_with_sound(pos)
 	local nvm = techage.get_nvm(pos)
 	if nvm.play_sound then
 		minetest.sound_play("doors_door_open", {
@@ -228,6 +275,12 @@ local function exch_nodes(pos)
 			max_hear_distance = 15})
 	end
 	return exchange_nodes(pos, nvm)
+end
+
+local function exchange_with_learning(pos)
+	local nvm = techage.get_nvm(pos)
+	add_node_names(pos, nvm)
+	return exchange_with_sound(pos)
 end
 
 minetest.register_node("techage:ta3_doorcontroller2", {
@@ -256,12 +309,15 @@ minetest.register_node("techage:ta3_doorcontroller2", {
 
 		local meta = M(pos)
 		local nvm = techage.get_nvm(pos)
+		nvm.fs2_active = false
 
 		if fields.tab == "2" then
 			meta:set_string("formspec", formspec2(nvm))
+			nvm.fs2_active = true
 			return
 		elseif fields.tab == "1" then
 			meta:set_string("formspec", formspec1(nvm, meta))
+			nvm.fs2_active = true
 			return
 		elseif fields.record then
 			nvm.recording = true
@@ -276,15 +332,18 @@ minetest.register_node("techage:ta3_doorcontroller2", {
 			nvm.recording = false
 			local name = player:get_player_name()
 			local pos_list = mark.get_poslist(name)
-			gen_config(pos, pos_list)
-			local text = #pos_list.." "..S("block positions are stored.")
+			local num, skipped = gen_config(pos, pos_list)
+			local text = num.." "..S("block positions are stored.")
 			meta:set_string("status", text)
+			if skipped > 0 then
+				minetest.chat_send_player(name, S("Positions in protected areas are skipped:").." "..skipped)
+			end
 			mark.unmark_all(name)
 			mark.stop(name)
 			meta:set_string("stored_config", "")
 			meta:set_string("formspec", formspec1(nvm, meta))
 		elseif fields.exchange then
-			if exch_nodes(pos) then
+			if exchange_with_learning(pos) then
 				meta:set_string("status", S("Blocks exchanged"))
 				meta:set_string("formspec", formspec1(nvm, meta))
 				local name = player:get_player_name()
@@ -306,23 +365,14 @@ minetest.register_node("techage:ta3_doorcontroller2", {
 		end
 	end,
 
-	allow_metadata_inventory_move = function(pos, from_list, from_index, to_list, to_index, count, player)
-		if minetest.is_protected(pos, player:get_player_name()) then
-			return 0
-		end
-		return 1
+	allow_metadata_inventory_move = function()
+		return 0
 	end,
-	allow_metadata_inventory_take = function(pos, listname, index, stack, player)
-		if minetest.is_protected(pos, player:get_player_name()) then
-			return 0
-		end
-		return 1
+	allow_metadata_inventory_take = function()
+		return 0
 	end,
-	allow_metadata_inventory_put = function(pos, listname, index, stack, player)
-		if minetest.is_protected(pos, player:get_player_name()) then
-			return 0
-		end
-		return 1
+	allow_metadata_inventory_put = function()
+		return 0
 	end,
 
 	on_rightclick = function(pos, node, clicker, itemstack, pointed_thing)
@@ -331,7 +381,11 @@ minetest.register_node("techage:ta3_doorcontroller2", {
 		end
 		local meta = M(pos)
 		local nvm = techage.get_nvm(pos)
-		meta:set_string("formspec", formspec1(nvm, meta))
+		if nvm.fs2_active then
+			meta:set_string("formspec", formspec2(nvm))
+		else
+			meta:set_string("formspec", formspec1(nvm, meta))
+		end
 	end,
 
 	can_dig = function(pos, player)
@@ -358,12 +412,18 @@ minetest.register_node("techage:ta3_doorcontroller2", {
 techage.register_node({"techage:ta3_doorcontroller2"}, {
 	on_recv_message = function(pos, src, topic, payload)
 		if topic == "on" then
-			return hide_nodes(pos)
+			return exchange_with_sound(pos)
 		elseif topic == "off" then
-			return show_nodes(pos)
+			return exchange_with_sound(pos)
 		elseif topic == "exchange" then
 			local nvm = techage.get_nvm(pos)
 			return exchange_nodes(pos, nvm, tonumber(payload), "exch")
+		elseif topic == "to1" then
+			local nvm = techage.get_nvm(pos)
+			return exchange_nodes(pos, nvm, tonumber(payload), "to1")
+		elseif topic == "to2" then
+			local nvm = techage.get_nvm(pos)
+			return exchange_nodes(pos, nvm, tonumber(payload), "to2")
 		elseif topic == "set" then
 			local nvm = techage.get_nvm(pos)
 			return exchange_nodes(pos, nvm, tonumber(payload), "set")
@@ -372,7 +432,7 @@ techage.register_node({"techage:ta3_doorcontroller2"}, {
 			return exchange_nodes(pos, nvm, tonumber(payload), "dig")
 		elseif topic == "get" then
 			local nvm = techage.get_nvm(pos)
-			return get_node_name(nvm, tonumber(payload))
+			return get_state(nvm, tonumber(payload))
 		elseif topic == "reset" then
 			local nvm = techage.get_nvm(pos)
 			return reset_config(pos, nvm)
@@ -381,9 +441,9 @@ techage.register_node({"techage:ta3_doorcontroller2"}, {
 	end,
 	on_beduino_receive_cmnd = function(pos, src, topic, payload)
 		if topic == 1 and payload[1] == 1 then
-			return hide_nodes(pos) and 0 or 3
+			return exchange_with_sound(pos) and 0 or 3
 		elseif topic == 1 and payload[1] == 0 then
-			return show_nodes(pos) and 0 or 3
+			return exchange_with_sound(pos) and 0 or 3
 		elseif topic == 9 and payload[1] == 0 then  -- Exchange Block
 			local nvm = techage.get_nvm(pos)
 			return exchange_nodes(pos, nvm, payload[2] or 1, "exch") and 0 or 3
@@ -396,23 +456,33 @@ techage.register_node({"techage:ta3_doorcontroller2"}, {
 		elseif topic == 9 and payload[1] == 3 then  -- reset
 			local nvm = techage.get_nvm(pos)
 			return reset_config(pos, nvm) and 0 or 3
+		elseif topic == 9 and payload[1] == 4 then  -- to1
+			local nvm = techage.get_nvm(pos)
+			return exchange_nodes(pos, nvm, payload[2] or 1, "to1") and 0 or 3
+		elseif topic == 9 and payload[1] == 5 then  -- to2
+			local nvm = techage.get_nvm(pos)
+			return exchange_nodes(pos, nvm, payload[2] or 1, "to2") and 0 or 3
 		end
 		return 2
 	end,
 	on_beduino_request_data = function(pos, src, topic, payload)
-		if topic == 147 then  -- Get Name
+		if topic == 147 then  -- Get State
 			local nvm = techage.get_nvm(pos)
-			return 0, get_node_name(nvm, payload[1] or 1)
+			return 0, {get_state(nvm, tonumber(payload[1]))}
 		end
-		return 2, ""
+		return 2, {0}
 	end,
 	on_node_load = function(pos)
 		local nvm = techage.get_nvm(pos)
 		if nvm.config == nil then
 			gen_config_initial(pos)
+		elseif nvm.config[1] and nvm.config[1].nameS == nil then
+			add_node_names(pos, nvm) 
 		end
 	end,
 })
+
+minetest.register_alias("techage:ta3_doorcontroller3", "techage:ta3_doorcontroller2")
 
 minetest.register_craft({
 	type = "shapeless",
@@ -426,6 +496,7 @@ local Doors = {
 	"doors:rusty_prison_door",
 	"doors:trapdoor_steel",
 	"doors:door_glass",
+	"doors:door_wood",
 	"doors:door_obsidian_glass",
 	"doors:japanese_door",
 	"doors:screen_door",

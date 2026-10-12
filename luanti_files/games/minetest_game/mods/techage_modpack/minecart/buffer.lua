@@ -131,7 +131,7 @@ minetest.register_node("minecart:buffer", {
 		if M(pos):get_string("owner") ~= player:get_player_name() then
 			return
 		end
-		if (fields.key_enter == "true" or fields.exit == "Save") and fields.name ~= "" then
+		if (fields.key_enter == "true" or fields.exit == "Save") and fields.name and fields.name ~= "" then
 			M(pos):set_string("name", fields.name)
 			M(pos):set_int("time", tonumber(fields.time) or 0)
 			M(pos):set_string("formspec", formspec(pos))

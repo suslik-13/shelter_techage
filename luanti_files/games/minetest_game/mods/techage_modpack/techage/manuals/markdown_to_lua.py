@@ -1,7 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # install mistune v0.8.4 with: pip install mistune==0.8.4
+# or with: pip install mistune==0.8.4 --break-system-packages
 
 import re
 import mistune
@@ -243,6 +244,30 @@ m2l.gen_lua_file("../doc/manual_ta5_EN.lua")
 
 
 m2l = MarkdownToLua()
+m2l.parse_md_file("./manual_FR.md")
+m2l.gen_lua_file("../doc/manual_FR.lua")
+
+m2l = MarkdownToLua()
+m2l.parse_md_file("./manual_ta1_FR.md")
+m2l.gen_lua_file("../doc/manual_ta1_FR.lua")
+
+m2l = MarkdownToLua()
+m2l.parse_md_file("./manual_ta2_FR.md")
+m2l.gen_lua_file("../doc/manual_ta2_FR.lua")
+
+m2l = MarkdownToLua()
+m2l.parse_md_file("./manual_ta3_FR.md")
+m2l.gen_lua_file("../doc/manual_ta3_FR.lua")
+
+m2l = MarkdownToLua()
+m2l.parse_md_file("./manual_ta4_FR.md")
+m2l.gen_lua_file("../doc/manual_ta4_FR.lua")
+
+m2l = MarkdownToLua()
+m2l.parse_md_file("./manual_ta5_FR.md")
+m2l.gen_lua_file("../doc/manual_ta5_FR.lua")
+
+m2l = MarkdownToLua()
 m2l.parse_md_file("./manual_pt-BR.md")
 m2l.gen_lua_file("../doc/manual_pt-BR.lua")
 
@@ -290,3 +315,28 @@ m2l.gen_lua_file("../doc/manual_ta4_RU.lua")
 m2l = MarkdownToLua()
 m2l.parse_md_file("./manual_ta5_RU.md")
 m2l.gen_lua_file("../doc/manual_ta5_RU.lua")
+
+
+m2l = MarkdownToLua()
+m2l.parse_md_file("./manual_UA.md")
+m2l.gen_lua_file("../doc/manual_UA.lua")
+
+m2l = MarkdownToLua()
+m2l.parse_md_file("./manual_ta1_UA.md")
+m2l.gen_lua_file("../doc/manual_ta1_UA.lua")
+
+m2l = MarkdownToLua()
+m2l.parse_md_file("./manual_ta2_UA.md")
+m2l.gen_lua_file("../doc/manual_ta2_UA.lua")
+
+m2l = MarkdownToLua()
+m2l.parse_md_file("./manual_ta3_UA.md")
+m2l.gen_lua_file("../doc/manual_ta3_UA.lua")
+
+m2l = MarkdownToLua()
+m2l.parse_md_file("./manual_ta4_UA.md")
+m2l.gen_lua_file("../doc/manual_ta4_UA.lua")
+
+m2l = MarkdownToLua()
+m2l.parse_md_file("./manual_ta5_UA.md")
+m2l.gen_lua_file("../doc/manual_ta5_UA.lua")

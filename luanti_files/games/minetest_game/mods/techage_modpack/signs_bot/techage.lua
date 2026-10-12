@@ -185,12 +185,16 @@ send_cmnd 3465 pull*default:dirt*2]]),
 			return address ~= nil and command ~= nil and command ~= ""
 		end,
 		cmnd = function(base_pos, mem, address, command)
+			command = tostring(command)
 			command = command:gsub("*", " ")
 			address = tostring(tonumber(address))
 			local meta = minetest.get_meta(base_pos)
 			local number = tostring(meta:get_int("number") or 0)
 			local topic, payload = unpack(string.split(command, " ", false, 1))
-			techage.send_single(number, address, topic, payload)
+			-- only devices the bot owner has access to
+			if techage.not_protected(address, meta:get_string("owner")) then
+				techage.send_single(number, address, topic, payload)
+			end
 			return signs_bot.DONE
 		end,
 	})
@@ -302,7 +306,7 @@ send_cmnd 3465 pull*default:dirt*2]]),
 		end,
 		on_beduino_request_data = function(pos, src, topic, payload)
 			local mem = tubelib2.get_mem(pos)
-			if topic == 128 then -- state
+			if topic == 129 then -- state
 				if mem.error then
 					return 0, {5}
 				elseif mem.running then

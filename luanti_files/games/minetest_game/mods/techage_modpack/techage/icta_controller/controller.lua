@@ -275,7 +275,7 @@ local function on_receive_fields(pos, formname, fields, player)
 	end
 	if fields.go then
 		local fs_data = minetest.deserialize(meta:get_string("fs_data")) or FS_DATA
-		local output = techage.edit_command(fs_data, fields.cmnd)
+		local output = techage.edit_command(fs_data, fields.cmnd or "")
 		stop_controller(pos, meta)
 		meta:set_string("formspec", techage.formspecRules(meta, fs_data, output))
 		meta:set_string("fs_data", minetest.serialize(fs_data))
