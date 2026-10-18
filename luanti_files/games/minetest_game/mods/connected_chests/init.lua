@@ -574,7 +574,7 @@ connected_chests.register_chest("default:chest_locked", {
 			local left_param2 = minetest.get_node(pos).param2
 
 			-- TODO: test for invalid param2 values
-			local x, z = unpack(param_tab2[left_param2])
+			local x, z = unpack(param_tab2[left_param2] or param_tab2[left_param2 % 4])
 			local pos_right = {x=pos.x-x, y=pos.y, z=pos.z-z}
 			local node = minetest.get_node(pos_right)
 			if node.name == "default:chest_locked_connected_right"
