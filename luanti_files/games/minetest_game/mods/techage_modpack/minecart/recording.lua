@@ -40,7 +40,7 @@ local function dashboard_create(self)
 				scale = {x=100, y=100},
 				text = "Recording:",
 				number = 0xFFFFFF,
-				size = {x = 1},
+				size = {x = 1, y = 0},
 			})
 		end
 	end
