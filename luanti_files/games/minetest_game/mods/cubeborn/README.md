@@ -722,7 +722,11 @@ Monsters need full darkness, as in Minecraft. Within 32 nodes of the spot at mos
 `cubeborn.spawn_cap_monster` (8), `_animal` (6), `_water` (5), `_ambient` (3) Cubeborn mobs of that
 category may live; `cubeborn.spawn_chance_scale` (1) makes the ABMs rarer. The mobs_redo settings
 apply: `mobs_spawn = false` stops it, nothing spawns within `mob_nospawn_range` of a player, monsters
-never in peaceful mode or (with `mobs_spawn_protected = false`) in protected areas.
+never in peaceful mode or (with `mobs_spawn_protected = false`) in protected areas. A mob is placed
+only where its whole box fits (camels need three nodes across).
+
+A mob that ends up inside nodes anyway (a structure or a block placed onto it, a child grown up under a
+roof) is lifted to the first free place within 8 nodes above instead of sinking and suffocating.
 
 ## Overworld monsters (`cb_mobs_overworld`, needs mobs_redo)
 
@@ -733,10 +737,12 @@ drop rotten flesh (food; 80 % chance of Hunger for 30 s). Zombies and husks brea
 (about 12 s of blows, the door drops as an item) and glass (about 3 s, no drop) that stand between them
 and their target; never steel, glass or owned doors, obsidian glass, or anything in protected areas or
 in pocket shells. **Drowned** live in dark rivers and seas, do not burn, and 15 % of them throw a
-trident (a projectile only; no trident ever drops).
+trident (a projectile only; no trident ever drops). As in Minecraft only 1 in 15 picked spots gets one,
+and no more than 3 live within 32 nodes.
 
-**Creepers** walk up and explode after 1.5 s: the blast hurts and pushes creatures within 3 nodes and
-never breaks a node. Lightning (tiny) charges creepers within 4 nodes of the strike: radius 6. They
+**Creepers** walk up to players (never villagers or tamed wolves unless those hit them first) and explode
+after 1.5 s: the blast hurts and pushes creatures within 3 nodes and never breaks a node. An ocelot or a
+cat (mobs_animal's kitten) within 6 nodes stops the fuse and sends them running. Lightning (tiny) charges creepers within 4 nodes of the strike: radius 6. They
 drop gunpowder. **Spider jockeys** (rare, only with `mobs_monster` and `mobs_skeletons`) are a
 skeleton archer riding a spider. **Strays** are the skeletons of snowy biomes: their arrows (mob
 projectiles only) hurt 3 and slow for 30 s; they burn in daylight and drop bones. **Silverfish** hide
@@ -770,9 +776,12 @@ no taming: whoever saddles one owns it and rides it (no chest).
 **Wolves** live in forests, taigas, snowy lands and savannas, in six coats by biome. Wild ones leave
 players alone until hit (then the pack fights back) and hunt skeletons. A bone (`bonemeal:bone`) tames
 one with a 1 in 3 chance: a tamed wolf wears a red collar, has 20 HP, follows its owner (and comes to them
-from more than 24 nodes away), fights monsters except creepers and attacks whoever hits its owner. The
-owner's right-click with an empty hand makes it sit or stand up; a sitting wolf stays put. Raw meat,
-pork or chicken heals and breeds it.
+from more than 24 nodes away), fights monsters except creepers and attacks whoever hits its owner (an
+archer, not its arrow) and monsters going for its owner. A creeper blast does 40 % of its damage to a
+wolf, so a healthy tamed wolf lives through one. The owner's right-click with an empty hand makes it sit
+or stand up; a sitting wolf stays put. Raw meat, pork or chicken heals and breeds it. On tamed Cubeborn
+mobs the mobs_redo protection rune also guards against mobs and blasts: half damage (level 1), none
+(level 2).
 
 **Armadillos** live in savannas and roll up when a sprinting or riding player, their attacker or an undead
 mob comes within 4 nodes; rolled up they take half damage minus one. Every 5-10 minutes an adult sheds an
@@ -846,7 +855,8 @@ and, fully puffed, stings what touches it with poison; eating one poisons and st
 warm seas: swimming near them gives Dolphin's Grace (faster swimming), and fed raw fish one leads you for
 30 s towards the nearest structure. They breathe air and fight back as a pod. **Nautiluses** drift in
 deeper warm water, charge whoever hurts them and sometimes drop a nautilus shell (taming, riding and
-nautilus armour are not included). Fish, squid and nautiluses choke out of water.
+nautilus armour are not included). Fish, squid and nautiluses choke out of water; Cubeborn's swimmers
+(and axolotls) turn back where the water ends instead of swimming or climbing onto the shore.
 
 **Ocean monuments** (`/cb_spawn ocean_monument` on deep sea, or `/cb_scatter ocean_monument N`) are built
 of prismarine under the sea, on struts down to the sea floor, and kept by **guardians**: they aim a beam
