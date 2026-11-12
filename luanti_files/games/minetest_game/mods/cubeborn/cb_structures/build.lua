@@ -337,12 +337,12 @@ function cb_structures.place(name, origin, owner, callback, seed, opts)
 			origin = vector.offset(origin, 0, def.y_max - l.maxp.y, 0)
 			l = def.layout(vector.copy(origin), seed, plan, opts.here)
 		end
-		-- an admin's /cb_spawn in a pocket: the pockets fill up with their
-		-- own fortresses and bastions, whose boxes cover most of the room
+		-- an admin's /cb_spawn in a pocket or the nether mod's Nether: they
+		-- fill up with their own fortresses and bastions, whose boxes cover most of the room
 		-- while their pieces leave much of it empty; such a build is checked
 		-- piece by piece
 		local _, in_pocket = cb_dimensions.is_shell(origin)
-		local by_pieces = opts.here and in_pocket ~= nil
+		local by_pieces = opts.here and (in_pocket ~= nil or cb_structures.dim_at(origin) == "nether")
 		local ok, err = cb_structures.validate(name, l.minp, l.maxp, by_pieces)
 		if ok and by_pieces then
 			ok, err = cb_structures.pieces_free(l)
