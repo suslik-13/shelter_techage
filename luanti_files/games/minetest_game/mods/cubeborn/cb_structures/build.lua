@@ -278,37 +278,13 @@ local function queue(name, origin, owner, seed, l, plan, callback, here)
 	callback({ ok = true, id = id, })
 end
 
--- Piece by piece: no piece of layout l in a part of a placed structure (in
--- the whole box of one still being built), on protected or built-over ground.
-function cb_structures.pieces_free(l)
-	local reg = cb_structures.registry
-	for _, piece in ipairs(l.pieces) do
-		for id, rec in pairs(reg.all()) do
-			if rec.minp and cb_core.intersect(piece.minp, piece.maxp, rec.minp, rec.maxp) then
-				if rec.state ~= "ready" or not rec.parts then
-					return false, S("The place overlaps structure #@1.", id)
-				end
-				for _, part in ipairs(rec.parts) do
-					if cb_core.intersect(piece.minp, piece.maxp, part.minp, part.maxp) then
-						return false, S("The place overlaps structure #@1.", id)
-					end
-				end
-			end
-		end
-		local res = cb_core.check_area_now(piece.minp, piece.maxp)
-		if not res.ok then
-			return false, res.reason == "protected" and S("Place is protected at @1.", core.pos_to_string(res.pos))
-				or S("Place is occupied at @1.", core.pos_to_string(res.pos))
-		end
-	end
-	return true
-end
-
 -- Places structure `name` with its layout origin at `origin`. callback(res)
 -- gets {ok = true, id = id} once the build is queued, or {ok = false, msg}.
 -- opts.variant picks a variant of types that have them; opts.here (an admin's
 -- /cb_spawn): types that pick their own height in a pocket (Nether fortress,
--- bastion) stand at origin.y instead. Types with a plan()
+-- bastion) stand at origin.y instead, and the build goes ahead whatever is
+-- there (builds, protection, other structures, the type's usual worlds and
+-- heights) because the admin asks for it. Types with a plan()
 -- first emerge their `prepare` area, then plan (reading the map); the plan
 -- is kept in the build job so that the layout never reads the map again.
 function cb_structures.place(name, origin, owner, callback, seed, opts)
@@ -331,23 +307,15 @@ function cb_structures.place(name, origin, owner, callback, seed, opts)
 		-- by as much (a mineshaft corridor climbing from an origin at the
 		-- ceiling); one on the surface is still refused
 		for _ = 1, 3 do
-			if plan or not def.y_max or l.maxp.y <= def.y_max or l.maxp.y - def.y_max > cb_structures.SINK_MAX then
+			if plan or opts.here or not def.y_max or l.maxp.y <= def.y_max or l.maxp.y - def.y_max > cb_structures.SINK_MAX then
 				break
 			end
 			origin = vector.offset(origin, 0, def.y_max - l.maxp.y, 0)
 			l = def.layout(vector.copy(origin), seed, plan, opts.here)
 		end
-		-- an admin's /cb_spawn in a pocket or the nether mod's Nether: they
-		-- fill up with their own fortresses and bastions, whose boxes cover most of the room
-		-- while their pieces leave much of it empty; such a build is checked
-		-- piece by piece
-		local _, in_pocket = cb_dimensions.is_shell(origin)
-		local by_pieces = opts.here and (in_pocket ~= nil or cb_structures.dim_at(origin) == "nether")
-		local ok, err = cb_structures.validate(name, l.minp, l.maxp, by_pieces)
-		if ok and by_pieces then
-			ok, err = cb_structures.pieces_free(l)
-		end
-		if ok then
+		local forced = opts.here
+		local ok, err = cb_structures.validate(name, l.minp, l.maxp, forced)
+		if ok and not forced then
 			for box in pairs(pending) do
 				if cb_core.intersect(l.minp, l.maxp, box.minp, box.maxp) then
 					ok, err = false, S("Another structure is being placed there.")
@@ -357,7 +325,7 @@ function cb_structures.place(name, origin, owner, callback, seed, opts)
 		if not ok then
 			return callback({ ok = false, msg = err, })
 		end
-		if def.self_checked or by_pieces then
+		if def.self_checked or forced then
 			return queue(name, origin, owner, seed, l, plan, callback, opts.here)
 		end
 		local box = { minp = l.minp, maxp = l.maxp, }
@@ -382,7 +350,7 @@ function cb_structures.place(name, origin, owner, callback, seed, opts)
 	local pr = def.prepare
 	emerge(vector.offset(origin, -pr.radius, -pr.below, -pr.radius), vector.offset(origin, pr.radius, pr.above, pr.radius),
 		function()
-			local plan, err = def.plan(vector.copy(origin), seed, variant)
+			local plan, err = def.plan(vector.copy(origin), seed, variant, opts.here)
 			if not plan then
 				return callback({ ok = false, msg = err, })
 			end

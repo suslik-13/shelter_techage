@@ -300,9 +300,12 @@ an anvil.
 ## Structures (`cb_structures`)
 
 Admins with `cb_admin` build structures with `/cb_spawn <structure> [x y z]` (without coordinates: at
-the admin's position) and see the list with `/cb_spawn list`. The place is checked first (protection,
-player blocks, other structures, the right dimension and height); the build then runs as a background
-job and the admin is told when it is done. Chests get their loot when first opened.
+the admin's position) and see the list with `/cb_spawn list`. The admin's word goes: the structure is
+built right there, over protection, player blocks and other structures, in any dimension and at any
+height (only the map limits and pocket walls hold; types that need the terrain, like a village on flat
+ground or an ocean ruin in deep water, still read it). Fortresses and bastions stand at the given
+height. The build runs as a background job and the admin is told when it is done; while the server
+lags it still takes a step a second. Chests get their loot when first opened.
 
 Structures with inhabitants refill them while a player is within 48 nodes: one mob per part per
 minute up to a number set by the part's size, and only while the part is intact (at least 75 % of its
